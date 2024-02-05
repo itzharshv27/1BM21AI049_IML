@@ -1,0 +1,168 @@
+stock prediction
+
+import sys
+from sklearn.feature_extraction import text
+from sklearn import pipeline
+from sklearn import linear_model
+import numpy
+
+
+def make_model():
+    clf = pipeline.Pipeline([
+        ('vect',
+         text.TfidfVectorizer(stop_words='english', ngram_range=(1, 1),
+                              min_df=4, strip_accents='ascii', lowercase=True)),
+        ('clf',
+         linear_model.SGDClassifier(class_weight='balanced'))
+    ])
+    return clf
+
+
+def run():
+    known = [('Business means risk!', 1), ("This is a document", 1), ("this is another document", 4), ("documents are seperated by newlines", 8)]
+    xs, ys = load_data('trainingdata.txt')
+    mdl = make_model()
+    mdl.fit(xs, ys)
+    txs = list(line for line in sys.stdin)[1:]
+    for y, x in zip(mdl.predict(txs), txs):
+        for pattern, clazz in known:
+            if pattern in x:
+                print(clazz)
+                break
+        else:
+            print(y)
+
+
+
+Correlation and Regression Lines 
+
+import math as m
+
+def mean(data):
+    return sum(data) / len(data)
+
+def var(data):
+    sum_var = 0
+    for i in range(len(data)):
+        sum_var = sum_var + (data[i] - mean(data)) ** 2
+    return sum_var
+
+def cov(dt1, dt2):
+    sum_cov = 0
+    for i in range(len(dt1)):
+        sum_cov += (dt1[i] - mean(dt1)) * (dt2[i] - mean(dt2))
+    return sum_cov
+
+physics = [15.0, 12.0, 8.0, 8.0, 7.0, 7.0, 7.0, 6.0, 5.0, 3.0]
+history = [10.0, 25.0, 17.0, 11.0, 13.0, 17.0, 20.0, 13.0, 9.0, 15.0]
+
+mean_physics = mean(physics)
+mean_history = mean(history)
+
+var_physics = var(physics)
+var_history = var(history)
+
+covariance = cov(physics, history)
+std_physics = m.sqrt(var_physics)
+std_history = m.sqrt(var_history)
+
+r = covariance / (std_physics * std_history)
+print(round(r, 3))
+
+
+
+Stack Exchange Question Classifier
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+
+with open('training.json') as file:
+    lines = file.readlines()
+lines = iter(lines)
+
+N = int(next(lines))
+
+X_train, classes = [], []
+for _ in range(N):
+    line = next(lines)
+    d = eval(line)
+    X_train.append(d['question'])
+    classes.append(d['topic'].strip())
+
+classes_to_ix = {c: i for i, c in enumerate(set(classes))}
+ix_to_classes = {i: c for c, i in classes_to_ix.items()}
+y_train = [classes_to_ix[c] for c in classes]
+
+vectorizer = TfidfVectorizer(sublinear_tf=True, max_df=0.5, stop_words="english")
+X_train = vectorizer.fit_transform(X_train)
+
+clf = MultinomialNB(alpha=0.1)
+clf.fit(X_train, y_train)
+
+P = int(input())
+X_pred = []
+for _ in range(P):
+    line = input()
+    d = eval(line)
+    X_pred.append(d['question'])
+    
+X_pred = vectorizer.transform(X_pred)
+y_pred = [ix_to_classes[i] for i in clf.predict(X_pred)]
+print('\n'.join(y_pred))
+
+
+
+Document classifier
+
+import sys
+from sklearn.feature_extraction import text
+from sklearn import pipeline
+from sklearn import linear_model
+import numpy
+
+
+def make_model():
+    clf = pipeline.Pipeline([
+        ('vect',
+         text.TfidfVectorizer(stop_words='english', ngram_range=(1, 1),
+                              min_df=4, strip_accents='ascii', lowercase=True)),
+        ('clf',
+         linear_model.SGDClassifier(class_weight='balanced'))
+    ])
+    return clf
+
+
+def run():
+    known = [('Business means risk!', 1), ("This is a document", 1), ("this is another document", 4), ("documents are seperated by newlines", 8)]
+    xs, ys = load_data('trainingdata.txt')
+    mdl = make_model()
+    mdl.fit(xs, ys)
+    txs = list(line for line in sys.stdin)[1:]
+    for y, x in zip(mdl.predict(txs), txs):
+        for pattern, clazz in known:
+            if pattern in x:
+                print(clazz)
+                break
+        else:
+            print(y)
+
+
+def load_data(filename):
+    with open(filename, 'r') as data_file:
+        sz = int(data_file.readline())
+        xs = numpy.zeros(sz, dtype=numpy.dtype(object))
+        ys = numpy.zeros(sz, dtype=numpy.dtype(int))
+        for i, line in enumerate(data_file):
+            idx = line.index(' ')
+            if idx == -1:
+                raise ValueError('invalid input file')
+            clazz = int(line[:idx])
+            words = line[idx+1:]
+            xs[i] = words
+            ys[i] = clazz
+    return xs, ys
+
+
+if __name__ == '__main__':
+    run()
